@@ -25,6 +25,11 @@ def tz_endorsing_rights(hash): # endpoint to return list of endorsers
     json = req(url)
     return json
 
+def tz_baking_rights(hash): # endpoint to return list of bakers
+    url = "%s/blocks/%s/helpers/baking_rights" % (preamble(), hash)
+    json = req(url)
+    return json
+
 def endorsers(rights): # list of potential endorsers of a block
     endorsers = []
     for right in rights:
@@ -39,6 +44,13 @@ def endorsers_slots(hash): # array of slots
         for slot in right["slots"]:
             slots[slot] = delegate
     return slots
+
+def baking_priorities(hash): # array of priorities
+    priorities = [None] * 70 # ??
+    json = tz_baking_rights(hash)
+    for ele in json:
+        priorities[ele["priority"]] = ele["delegate"]
+    return priorities
 
 def missed_slots(block):
     slots = endorsers_slots(block["header"]["predecessor"])
@@ -58,8 +70,7 @@ def endorsements(block): # list of accounts which actually endorsed a block
 def predecessor(hash): # predecessor block hash
     return hash["header"]["predecessor"]
 
-def missed_endorsements_previous(hash):
-    block1 = tz_block_by_hash(hash)
+def missed_endorsements_previous(block1):
     block0 = predecessor(block1)
     potential_endorsers = endorsers(tz_endorsing_rights(block0))
     endorsed = endorsements(block1)
@@ -67,11 +78,17 @@ def missed_endorsements_previous(hash):
 
 head = tz_head()
 print(head)
-print(missed_endorsements_previous(head))
-missed = missed_slots(tz_block_by_hash(head))
+block = tz_block_by_hash(head)
+print(missed_endorsements_previous(block))
+missed = missed_slots(block)
 for i in range(0, len(missed)):
     if missed[i] != None:
         print("%d: %s" % (i, missed[i]))
+
+bake_priorities = baking_priorities(block["header"]["predecessor"])
+if bake_priorities[0] != block["metadata"]["baker"]:
+    print("Baker missed!")
+
 
 #print(endorsers(tz_endorsing_rights(tz_head())))
 
