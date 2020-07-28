@@ -31,6 +31,25 @@ def endorsers(rights): # list of potential endorsers of a block
         endorsers.append(right["delegate"])
     return endorsers
 
+def endorsers_slots(hash): # array of slots
+    slots = [None] * 32
+    rights = tz_endorsing_rights(hash)
+    for right in rights:
+        delegate = right["delegate"]
+        for slot in right["slots"]:
+            slots[slot] = delegate
+    return slots
+
+def missed_slots(block):
+    slots = endorsers_slots(block["header"]["predecessor"])
+    endorsements = list(filter(lambda x: x["contents"][0]["kind"] == "endorsement", block["operations"][0]))
+    for endorsement in endorsements:
+        delegate = endorsement["contents"][0]["metadata"]["delegate"]
+        for slot in endorsement["contents"][0]["metadata"]["slots"]:
+            assert slots[slot] == delegate
+            slots[slot] = None
+    return slots
+
 def endorsements(block): # list of accounts which actually endorsed a block
     endorsements = list(filter(lambda x: x["contents"][0]["kind"] == "endorsement", block["operations"][0]))
     endorsers = list(map(lambda x: x["contents"][0]["metadata"]["delegate"], endorsements))
@@ -49,6 +68,11 @@ def missed_endorsements_previous(hash):
 head = tz_head()
 print(head)
 print(missed_endorsements_previous(head))
+missed = missed_slots(tz_block_by_hash(head))
+for i in range(0, len(missed)):
+    if missed[i] != None:
+        print("%d: %s" % (i, missed[i]))
+
 #print(endorsers(tz_endorsing_rights(tz_head())))
 
 """
