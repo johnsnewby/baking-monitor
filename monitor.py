@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import requests
 
 node = "http://tezos.newby.org:8732"
@@ -7,7 +9,6 @@ def preamble():
     return "%s/chains/%s" % (node, chain)
 
 def req(url):
-    print(url)
     resp = requests.get(url = url)
     return resp.json()
 
@@ -52,13 +53,14 @@ def baking_priorities(hash): # array of priorities
         priorities[ele["priority"]] = ele["delegate"]
     return priorities
 
+# Take an array of slots, and clear out all the ones which received endorsements
 def missed_slots(block):
     slots = endorsers_slots(block["header"]["predecessor"])
     endorsements = list(filter(lambda x: x["contents"][0]["kind"] == "endorsement", block["operations"][0]))
     for endorsement in endorsements:
         delegate = endorsement["contents"][0]["metadata"]["delegate"]
         for slot in endorsement["contents"][0]["metadata"]["slots"]:
-            assert slots[slot] == delegate
+            assert slots[slot] == delegate # be paranoid
             slots[slot] = None
     return slots
 
@@ -70,46 +72,9 @@ def endorsements(block): # list of accounts which actually endorsed a block
 def predecessor(hash): # predecessor block hash
     return hash["header"]["predecessor"]
 
+# How many of the endorsements planned in the previous block were missed?
 def missed_endorsements_previous(block1):
     block0 = predecessor(block1)
     potential_endorsers = endorsers(tz_endorsing_rights(block0))
     endorsed = endorsements(block1)
     return [item for item in potential_endorsers if item not in endorsed]
-
-head = tz_head()
-print(head)
-block = tz_block_by_hash(head)
-print(missed_endorsements_previous(block))
-missed = missed_slots(block)
-for i in range(0, len(missed)):
-    if missed[i] != None:
-        print("%d: %s" % (i, missed[i]))
-
-bake_priorities = baking_priorities(block["header"]["predecessor"])
-if bake_priorities[0] != block["metadata"]["baker"]:
-    print("Baker missed!")
-
-
-#print(endorsers(tz_endorsing_rights(tz_head())))
-
-"""
-
-
-# url tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks
-# curl tezos.newby.org:8732/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy
-# curl tezos.newby.org:8732/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy
-# curl tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/
-# curl tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/ | jq .
-# curl tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/ | jq .|less
-q# curl tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/baking_rights | jq .|less
-# curl tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/baking_rights
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/baking_rights
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/helpers/baking_rights
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/helpers/baking_rights |jq .
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/helpers/baking_rights |jq .|less
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/helpers/endorsing_rights |jq .|less
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/BKvRtEQwjKuP1aneC5aLGPbNyLjXzfWkW2E2arrBFfULwDZcWPy/helpers/endorsing_rights?all=true |jq .|less
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/598443,/helpers/endorsing_rights?all=true |jq .|less
-# curl  -v tezos.newby.org:8732/chains/NetXjD3HPJJjmcd/blocks/598443/helpers/endorsing_rights?all=true |jq .|less
-# dmesg
-# """
