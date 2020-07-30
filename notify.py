@@ -40,6 +40,9 @@ def check(block, my_bakers, sms):
     if len(my_misses) > 0:
         msg = '|'.join(my_misses)
         sms(msg)
+        return False
+    else:
+        return True
 
 def loop(my_bakers, sms):
     last_level = 0
@@ -49,6 +52,10 @@ def loop(my_bakers, sms):
         level = block["header"]["level"]
         if last_level < level:
             last_level = level
-            check(block, my_bakers, sms)
-            print("Checked block at level %d" % (level))
-        time.sleep(30)
+            if check(block, my_bakers, sms):
+                result = "OK"
+            else:
+                result = "not OK"
+            print("%d %s %s" % (level, block["hash"], result))
+            sys.stdout.flush()
+        time.sleep(10)
