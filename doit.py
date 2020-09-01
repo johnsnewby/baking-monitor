@@ -8,7 +8,7 @@ my_bakers = [ "tz1bg47NeJ5wePnPds9XxCAeftYPwb94WcA8",
 def sms(msg):
     data = {
         "text": msg,
-        "key": "a29fde0fa27881b4b45df0e6013f5119",
+        "key": "SECRET",
         "from": "TezosMonitor",
         "to": "00491749352940",
     }
